@@ -17,42 +17,24 @@ const checkVisibility = (array, index) => {
     return leftOrTopSide.every(otherTree => tree > otherTree) || rightOrBottomSide.every(otherTree => tree > otherTree)
 }
 
-const createColumn = (array, index) => {
-    const column = []
-    for (let i = 0; i < array.length; i++) {
-        const tree = array[i][index];
-        column.push(tree)
-    }
-    return column
+const createColumn = (rows, index) => {
+    return rows.reduce((column, trees) =>
+        [...column, trees[index]]
+    , [])
 }
 
 const calculateScenicScore = (row, columnIndex, rowIndex) => {
     const {tree, leftOrTopSide: leftSide, rightOrBottomSide: rightSide} = parseTreeAndSurroundings(row, columnIndex)
     const {leftOrTopSide: topSide, rightOrBottomSide: bottomSide} = parseTreeAndSurroundings(createColumn(textByLine, columnIndex), rowIndex)
 
-    const reverseArray = (arrayToReverse) => {
-        var newArray = [];
-        for (var i = arrayToReverse.length - 1; i >= 0; i--) {
-          newArray.push(arrayToReverse[i]);
-        }
-        return newArray;
-      }
-
     const directionalScore = (array, val) => {
-        let score = 1
-        for (let i = 0; i < array.length; i++) {
-            const arrayVal = array[i];
-            if(val >= arrayVal) {
-                score = i + 1
-            }
-            if(val <= arrayVal) {
-                break
-            }
-        }
-        return score
+        return array.reduce(([stop, score], tree, index) => {
+            const nextScore = val >= tree && !stop ? index + 1 : score
+            return [stop || val <= tree, nextScore]
+        }, [false, 1]).pop()
     }
-    const leftScore = directionalScore(reverseArray(leftSide), tree)
-    const topScore = directionalScore(reverseArray(topSide), tree)
+    const leftScore = directionalScore(leftSide.reverse(), tree)
+    const topScore = directionalScore(topSide.reverse(), tree)
     const rightScore = directionalScore(rightSide, tree)
     const bottomScore = directionalScore(bottomSide, tree)
     const scenicScore = leftScore * topScore * rightScore * bottomScore
@@ -61,28 +43,31 @@ const calculateScenicScore = (row, columnIndex, rowIndex) => {
 }
 
 const countVisibleTrees = (array) => {
-    let visibleTrees = 0;
-    array.forEach((line, i) => {
-        for (let j = 0; j < line.length; j++) {
-            if(checkVisibility(line, j)) {
-                visibleTrees++
-                continue
+    return array.reduce((visibleTrees, trees, rowIndex) => {
+        trees.reduce((visibleTreesInRow, tree, columnIndex) => {
+            const visible =
+                checkVisibility(trees, columnIndex)
+                || checkVisibility(createColumn(textByLine, columnIndex), rowIndex)
+            if (visible) {
+                return visibleTreesInRow + 1
+            } else {
+                return visibleTreesInRow
             }
-            if(checkVisibility(createColumn(textByLine, j), i)) visibleTrees++
-        }
-    })
-    return visibleTrees
+        }, visibleTrees)
+    }, 0)
 }
 
-const findHighestScenicScore = (array) => {
-    let highestScenicScore = 0
-    array.forEach((line, i) => {
-        line.forEach((tree, j) => {
-            const scenicScore = calculateScenicScore(line, j, i)
-            if(scenicScore > highestScenicScore) highestScenicScore = scenicScore
-        })
-    })
-    return highestScenicScore
+const findHighestScenicScore = (rows) => {
+    return rows.flatMap((trees, rowIndex) =>
+        trees.map((tree, columnIndex) => ({ trees, rowIndex, columnIndex }))
+    ).reduce((highestScenicScore, row) => {
+        const rowScenicScore = calculateScenicScore(row.trees, row.columnIndex, row.rowIndex)
+        if (rowScenicScore > highestScenicScore) {
+            return rowScenicScore
+        } else {
+            return highestScenicScore
+        }
+    }, 0)
 }
 
 console.log(`The number of total visible trees is ${countVisibleTrees(textByLine)}`)
