@@ -1,0 +1,12 @@
+{
+  "name": "9",
+  "version": "1.0.0",
+  "description": "",
+  "main": "rope-bridge.js",
+  "scripts": {
+    "start": "npx ts-node rope-bridge.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
